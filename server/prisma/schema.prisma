@@ -1,0 +1,82 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+
+  // Relations
+  ownedRooms  Room[]       @relation("RoomOwner")
+  roomMembers RoomMember[]
+  messages    Message[]
+}
+
+model Room {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  // Owner relation
+  owner_id String
+  owner    User   @relation("RoomOwner", fields: [owner_id], references: [id])
+
+  // Relations
+  members   RoomMember[]
+  messages  Message[]
+  summaries Summary[]
+}
+
+model RoomMember {
+  id       String   @id @default(uuid())
+  joinedAt DateTime @default(now())
+
+  // Relations
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id])
+
+  room_id String
+  room    Room   @relation(fields: [room_id], references: [id])
+
+  @@unique([user_id, room_id]) // prevents duplicate joins
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  // Relations
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id])
+
+  room_id String
+  room    Room   @relation(fields: [room_id], references: [id])
+
+  @@index([room_id, createdAt])
+}
+
+model Summary {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  // Relations
+  room_id String
+  room    Room   @relation(fields: [room_id], references: [id])
+}
